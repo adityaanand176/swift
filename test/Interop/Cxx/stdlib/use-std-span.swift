@@ -1,5 +1,5 @@
 // RUN: %target-run-simple-swift(-I %S/Inputs -Xfrontend -enable-experimental-cxx-interop -Xcc -std=c++20)
-// RUN: %target-run-simple-swift(-I %S/Inputs -Xfrontend -enable-experimental-cxx-interop -Xcc -std=c++20 -Xcc -D_LIBCPP_ENABLE_HARDENED_MODE)
+// RUN: %target-run-simple-swift(-I %S/Inputs -Xfrontend -enable-experimental-cxx-interop -Xcc -std=c++20 -Xcc -D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST)
 
 // FIXME swift-ci linux tests do not support std::span
 // UNSUPPORTED: OS=linux-gnu
@@ -56,6 +56,28 @@ func returnsSpanOfString(_ arr: [std.string]) -> SpanOfString {
   return arr.withUnsafeBufferPointer { ubpointer in
     return SpanOfString(ubpointer)
   }
+}
+
+func accessSpanAsGenericParam<T: RandomAccessCollection>(_ col: T) 
+                                              where T.Index == Int, T.Element == Int32 {
+  expectEqual(col.count, 3)                     
+  expectFalse(col.isEmpty)
+
+  expectEqual(col[0], 1)
+  expectEqual(col[1], 2)
+  expectEqual(col[2], 3)
+}
+
+// TODO redo this func
+func accessSpanAsSomeGenericParam(_ col: some CxxRandomAccessCollection) {
+  expectEqual(col.count, 3)                     
+  expectFalse(col.isEmpty)
+
+  // if (accessInvalid) {
+  //     // FIXME this does not trap
+  //     print("> Invalid element...")
+  //     print(col[5]);
+  // }
 }
 
 StdSpanTestSuite.test("EmptySpan") {
@@ -268,6 +290,28 @@ StdSpanTestSuite.test("Initialize Array from SpanOfString") {
 
   expectEqual(arr.count, newArr.count)
   expectEqual(arr, newArr)
+}
+
+// TODO remove this test and the code added for this test in std-span.h
+// StdSpanTestSuite.test("rdar://126570011") {
+//   var cp = CppApi()
+
+//   let span = cp.getSpan()
+//   print(span[0])
+//   print(span[1])
+//   // TODO this DOESN'T trap
+//   print(span[3])
+
+//   let constSpan = cp.getConstSpan()
+//   print(constSpan[0])
+//   print(constSpan[1])
+//   // TODO this traps
+//   // print(constSpan[3])
+// }
+
+StdSpanTestSuite.test("Span as arg to generic func") {
+  accessSpanAsGenericParam(ispan)
+  accessSpanAsSomeGenericParam(ispan)
 }
 
 runAllTests()

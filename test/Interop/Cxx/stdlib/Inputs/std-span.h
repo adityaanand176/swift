@@ -6,7 +6,26 @@
 #include <span>
 
 using Span = std::span<const int>;
+using NonConstSpan = std::span<int>;
 using SpanOfString = std::span<const std::string>;
+
+// TODO remove this code
+class CppApi {
+public:
+  Span getConstSpan();
+  std::span<int> getSpan();
+  // TODO try with std::span<int>
+};
+
+Span CppApi::getConstSpan() {
+  Span sp{new int[2], 2};
+  return sp;
+}
+
+std::span<int> CppApi::getSpan() {
+  std::span<int> sp{new int[2], 2};
+  return sp;
+}
 
 static int iarray[]{1, 2, 3};
 static std::string sarray[]{"", "ab", "abc"};
