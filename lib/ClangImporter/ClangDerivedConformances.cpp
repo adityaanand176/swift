@@ -18,6 +18,7 @@
 #include "swift/ClangImporter/ClangImporterRequests.h"
 #include "clang/Sema/DelayedDiagnostic.h"
 #include "clang/Sema/Overload.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace swift;
 using namespace swift::importer;
@@ -1171,23 +1172,50 @@ void swift::conformToCxxSpanIfNeeded(ClangImporter::Implementation &impl,
   if (!elementType || !sizeType)
     return;
 
+  // TODO if unnecessary, delete
   auto constPointerTypeDecl =
       lookupNestedClangTypeDecl(clangDecl, "const_pointer");
+  // TODO delete
+  llvm::errs() << "Dump const_pointer:\n";
+  constPointerTypeDecl->dump();
+
+  auto pointerTypeDecl =
+      lookupNestedClangTypeDecl(clangDecl, "pointer");
+  // TODO delete
+  llvm::errs() << "Dump pointer:\n";
+  pointerTypeDecl->dump();
+
   auto countTypeDecl = lookupNestedClangTypeDecl(clangDecl, "size_type");
 
-  if (!constPointerTypeDecl || !countTypeDecl)
+  if (!pointerTypeDecl || !countTypeDecl)
     return;
 
   // create fake variable for constPointer (constructor arg 1)
   auto constPointerType = clangCtx.getTypeDeclType(constPointerTypeDecl);
+  llvm::errs() << "QualType of constPointerTypeDecl\n";
+  constPointerType->dump();
+  // clangCtx.getPointerType(constPointerType)->dump();
+  constPointerType->getPointeeType()->dump();
+
+
+  auto pointerType = clangCtx.getTypeDeclType(pointerTypeDecl);
+  llvm::errs() << "QualType of pointerTypeDecl\n";
+  pointerType->dump();
+  // clangCtx.getPointerType(pointerType)->dump();
+  pointerType->getPointeeType()->dump();
+
   auto fakeConstPointerVarDecl = clang::VarDecl::Create(
       clangCtx, /*DC*/ clangCtx.getTranslationUnitDecl(),
       clang::SourceLocation(), clang::SourceLocation(), /*Id*/ nullptr,
-      constPointerType, clangCtx.getTrivialTypeSourceInfo(constPointerType),
+      pointerType, clangCtx.getTrivialTypeSourceInfo(pointerType),
       clang::StorageClass::SC_None);
+      
+  llvm::errs() << "Compare trivialTypeSourceInfo\n";
+  clangCtx.getTrivialTypeSourceInfo(constPointerType)->getType().dump();
+  clangCtx.getTrivialTypeSourceInfo(pointerType)->getType().dump();
 
   auto fakeConstPointer = new (clangCtx) clang::DeclRefExpr(
-      clangCtx, fakeConstPointerVarDecl, false, constPointerType,
+      clangCtx, fakeConstPointerVarDecl, false, pointerType,
       clang::ExprValueKind::VK_LValue, clang::SourceLocation());
 
   // create fake variable for count (constructor arg 2)
@@ -1209,6 +1237,9 @@ void swift::conformToCxxSpanIfNeeded(ClangImporter::Implementation &impl,
 
   auto clangDeclTyInfo = clangCtx.getTrivialTypeSourceInfo(
       clang::QualType(clangDecl->getTypeForDecl(), 0));
+
+  llvm::errs() << "ClangDeclTyInfo\n";
+  clangDeclTyInfo->getType()->dump();
 
   // Instantiate the templated constructor that would accept this fake variable.
   auto constructExprResult = clangSema.BuildCXXTypeConstructExpr(
@@ -1234,4 +1265,6 @@ void swift::conformToCxxSpanIfNeeded(ClangImporter::Implementation &impl,
   impl.addSynthesizedTypealias(decl, ctx.getIdentifier("Size"),
                                sizeType->getUnderlyingType());
   impl.addSynthesizedProtocolAttrs(decl, {KnownProtocolKind::CxxSpan});
+
+  llvm::errs() << "We created the constructor!\n";
 }

@@ -5,8 +5,8 @@
 #include <string>
 #include <span>
 
-using Span = std::span<const int>;
-using NonConstSpan = std::span<int>;
+using ConstSpan = std::span<const int>;
+using Span = std::span<int>;
 using SpanOfString = std::span<const std::string>;
 
 // TODO remove this code
@@ -32,8 +32,13 @@ static std::string sarray[]{"", "ab", "abc"};
 static Span ispan = {iarray};
 static SpanOfString sspan = {sarray};
 
-inline Span initSpan() { 
+inline ConstSpan initConstSpan() { 
   const int a[]{1, 2, 3};
+  return ConstSpan(a);
+}
+
+inline Span initSpan() { 
+  int a[]{1, 2, 3};
   return Span(a);
 }
 
