@@ -29,7 +29,7 @@ std::span<int> CppApi::getSpan() {
 
 static int iarray[]{1, 2, 3};
 static std::string sarray[]{"", "ab", "abc"};
-static Span ispan = {iarray};
+static ConstSpan ispan = {iarray};
 static SpanOfString sspan = {sarray};
 
 inline ConstSpan initConstSpan() { 
